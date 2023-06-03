@@ -43,6 +43,13 @@ export fn zstring_deinit(self: ?*zstring_t) void {
     }
 }
 
+export fn zstring_size(self: ?*const zstring_t) usize {
+    if (self) |sf| {
+        return zstringCast(@constCast(sf)).size;
+    }
+    return 0;
+}
+
 export fn zstring_capacity(self: ?*const zstring_t) usize {
     if (self) |sf| {
         return zstringCast(@constCast(sf)).capacity();
@@ -325,11 +332,11 @@ test "String Tests" {
     // allocate & capacity
     _ = zstring_allocate(myStr, 16);
     assert(zstring_capacity(myStr) == 16);
-    //assert(myStr.size == 0);
+    assert(zstring_size(myStr) == 0);
 
     // truncate
     _ = zstring_truncate(myStr);
-    //assert(zstring_capacity(myStr) == myStr.size);
+    assert(zstring_capacity(myStr) == zstring_size(myStr));
     assert(zstring_capacity(myStr) == 0);
 
     // concat
@@ -338,7 +345,7 @@ test "String Tests" {
     _ = zstring_concat(myStr, "💯");
     _ = zstring_concat(myStr, "Hello🔥");
 
-    //assert(myStr.size == 17);
+    assert(zstring_size(myStr) == 17);
 
     // pop & length
     assert(zstring_len(myStr) == 9);
@@ -442,17 +449,13 @@ test "String Tests" {
     // clear
     zstring_clear(myStr);
     assert(zstring_len(myStr) == 0);
-    //assert(myStr.size == 0);
-
-    // writer
-    // const writer = myStr.writer();
-    // const length = try writer.write("This is a Test!");
-    // assert(length == 15);
+    assert(zstring_size(myStr) == 0);
 
     // owned
-    //const mySlice = zstring_to_owned(myStr, &out_err, &output_len);
-    //assert(std.mem.eql(u8, mySlice.?[0..output_len], "This is a Test!"));
-    //allocator.free(mySlice.?);
+    // _ = zstring_concat(myStr,"This is a Test!");
+    // const mySlice = zstring_to_owned(myStr, &out_err, &output_len);
+    // assert(std.mem.eql(u8, mySlice.?[0..output_len], "This is a Test!"));
+    // allocator.free(mySlice.?);
 
     // // StringIterator
     // var i: usize = 0;
