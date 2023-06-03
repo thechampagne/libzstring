@@ -378,8 +378,8 @@ test "String Tests" {
 
     // str & cmp
     assert(zstring_cmp(myStr, "A\u{5360}💯Hell") == 1);
-    var nstr_1 = try allocator.dupeZ(u8, zstring_str(myStr, &output_len).?[0..output_len]);
-    defer allocator.free(nstr_1);
+    var nstr_1 = try std.testing.allocator.dupeZ(u8, zstring_str(myStr, &output_len).?[0..output_len]);
+    defer std.testing.allocator.free(nstr_1);
     assert(zstring_cmp(myStr, nstr_1) == 1);
 
     // charAt
@@ -418,8 +418,8 @@ test "String Tests" {
     // clone
     var testStr = zstring_clone(myStr, &out_err);
     defer zstring_deinit(testStr);
-    var nstr_2 = try allocator.dupeZ(u8, zstring_str(myStr, &output_len).?[0..output_len]);
-    defer allocator.free(nstr_2);
+    var nstr_2 = try std.testing.allocator.dupeZ(u8, zstring_str(myStr, &output_len).?[0..output_len]);
+    defer std.testing.allocator.free(nstr_2);
     assert(zstring_cmp(testStr, nstr_2) == 1);
 
     // reverse
