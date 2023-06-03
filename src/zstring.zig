@@ -452,10 +452,10 @@ test "String Tests" {
     assert(zstring_size(myStr) == 0);
 
     // owned
-    // _ = zstring_concat(myStr,"This is a Test!");
-    // const mySlice = zstring_to_owned(myStr, &out_err, &output_len);
-    // assert(std.mem.eql(u8, mySlice.?[0..output_len], "This is a Test!"));
-    // allocator.free(mySlice.?);
+    _ = zstring_concat(myStr,"This is a Test!");
+    const mySlice = zstring_to_owned(myStr, &out_err, &output_len);
+    assert(std.mem.eql(u8, mySlice.?[0..output_len], "This is a Test!"));
+    allocator.free(mySlice.?[0..output_len]);
 
     // // StringIterator
     // var i: usize = 0;
