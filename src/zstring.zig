@@ -6,6 +6,11 @@ const String = string.String;
 
 const zstring_t = opaque {};
 
+const zstring_iterator_t = extern struct {
+    zstring: ?*const zstring_t,
+    index: usize,
+};
+
 const zstring_error_t = enum(c_int) {
     ZSTRING_ERROR_NONE,
     ZSTRING_ERROR_OUT_OF_MEMORY,
@@ -301,6 +306,23 @@ export fn zstring_substr(self: ?*const zstring_t, start: usize, end: usize, out_
     return @ptrCast(*zstring_t, str);
 }
 
+export fn zstring_iterator_next(it: ?*zstring_iterator_t, len: ?*usize) ?[*]const u8 {
+    if (zstringCast(@constCast(it.?.*.zstring.?)).buffer) |buffer| {
+        if (it.?.*.index == zstringCast(@constCast(it.?.*.zstring.?)).size) return null;
+        var i = it.?.*.index;
+        it.?.*.index += std.unicode.utf8ByteSequenceLength(buffer[i]) catch 1;
+        const buf = buffer[i..it.?.*.index];
+        len.?.* = buf.len;
+        return buf.ptr;
+    } else {
+        return null;
+    }
+}
+
+export fn zstring_iterator(self: ?*const zstring_t) zstring_iterator_t {
+    return .{ .zstring = self, .index = 0 };
+}
+
 inline fn zstringCast(zstring: *zstring_t) *String {
     return @ptrCast(*String, @alignCast(8, zstring));
 }
@@ -457,17 +479,17 @@ test "String Tests" {
     assert(std.mem.eql(u8, mySlice.?[0..output_len], "This is a Test!"));
     allocator.free(mySlice.?[0..output_len]);
 
-    // // StringIterator
-    // var i: usize = 0;
-    // var iter = myStr.iterator();
-    // while (iter.next()) |ch| {
-    //     if (i == 0) {
-    //         assert(eql(u8, "T", ch));
-    //     }
-    //     i += 1;
-    // }
+    // StringIterator
+    var i: usize = 0;
+    var iter = zstring_iterator(myStr);
+    while (zstring_iterator_next(&iter, &output_len)) |ch| {
+        if (i == 0) {
+            assert(std.mem.eql(u8, "T", ch[0..output_len]));
+        }
+        i += 1;
+    }
 
-    // assert(i == myStr.len());
+    assert(i == zstring_len(myStr));
 }
 
 test "init with contents" {
