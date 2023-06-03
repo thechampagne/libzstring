@@ -314,166 +314,166 @@ test "Basic Usage" {
     assert(zstring_cmp(myString, "🔥 Hello, World 🔥") == 1);
 }
 
-// test "String Tests" {
-//     // Allocator for the String
-//     const page_allocator = std.heap.page_allocator;
-//     var arena = std.heap.ArenaAllocator.init(page_allocator);
-//     defer arena.deinit();
+test "String Tests" {
+    
+    // This is how we create the String
+    var myStr = zstring_init();
+    defer zstring_deinit(myStr);
+    var output_len: usize = undefined;
+    var out_err: zstring_error_t = undefined;
+    
+    // allocate & capacity
+    _ = zstring_allocate(myStr, 16);
+    assert(zstring_capacity(myStr) == 16);
+    //assert(myStr.size == 0);
 
-//     // This is how we create the String
-//     var myStr = String.init(arena.allocator());
-//     defer myStr.deinit();
+    // truncate
+    _ = zstring_truncate(myStr);
+    //assert(zstring_capacity(myStr) == myStr.size);
+    assert(zstring_capacity(myStr) == 0);
 
-//     // allocate & capacity
-//     try myStr.allocate(16);
-//     assert(myStr.capacity() == 16);
-//     assert(myStr.size == 0);
+    // concat
+    _ = zstring_concat(myStr, "A");
+    _ = zstring_concat(myStr, "\u{5360}");
+    _ = zstring_concat(myStr, "💯");
+    _ = zstring_concat(myStr, "Hello🔥");
 
-//     // truncate
-//     try myStr.truncate();
-//     assert(myStr.capacity() == myStr.size);
-//     assert(myStr.capacity() == 0);
+    //assert(myStr.size == 17);
 
-//     // concat
-//     try myStr.concat("A");
-//     try myStr.concat("\u{5360}");
-//     try myStr.concat("💯");
-//     try myStr.concat("Hello🔥");
+    // pop & length
+    assert(zstring_len(myStr) == 9);
+    assert(std.mem.eql(u8, zstring_pop(myStr, &output_len).?[0..output_len], "🔥"));
+    assert(zstring_len(myStr) == 8);
+    assert(std.mem.eql(u8, zstring_pop(myStr, &output_len).?[0..output_len], "o"));
+    assert(zstring_len(myStr) == 7);
 
-//     assert(myStr.size == 17);
+    // str & cmp
+    assert(zstring_cmp(myStr, "A\u{5360}💯Hell") == 1);
+    var nstr_1 = try allocator.dupeZ(u8, zstring_str(myStr, &output_len).?[0..output_len]);
+    defer allocator.free(nstr_1);
+    assert(zstring_cmp(myStr, nstr_1) == 1);
 
-//     // pop & length
-//     assert(myStr.len() == 9);
-//     assert(eql(u8, myStr.pop().?, "🔥"));
-//     assert(myStr.len() == 8);
-//     assert(eql(u8, myStr.pop().?, "o"));
-//     assert(myStr.len() == 7);
+    // charAt
+    assert(std.mem.eql(u8, zstring_char_at(myStr,2, &output_len).?[0..output_len], "💯"));
+    assert(std.mem.eql(u8, zstring_char_at(myStr,1, &output_len).?[0..output_len], "\u{5360}"));
+    assert(std.mem.eql(u8, zstring_char_at(myStr,0, &output_len).?[0..output_len], "A"));
+    
+    // insert
+    _ = zstring_insert(myStr,"🔥", 1);
+    assert(std.mem.eql(u8, zstring_char_at(myStr,1, &output_len).?[0..output_len], "🔥"));
+    assert(zstring_cmp(myStr,"A🔥\u{5360}💯Hell") == 1);
 
-//     // str & cmp
-//     assert(myStr.cmp("A\u{5360}💯Hell"));
-//     assert(myStr.cmp(myStr.str()));
+    // find
+    assert(zstring_find(myStr,"🔥") == 1);
+    assert(zstring_find(myStr,"💯") == 3);
+    assert(zstring_find(myStr,"Hell") == 4);
 
-//     // charAt
-//     assert(eql(u8, myStr.charAt(2).?, "💯"));
-//     assert(eql(u8, myStr.charAt(1).?, "\u{5360}"));
-//     assert(eql(u8, myStr.charAt(0).?, "A"));
+    // remove & removeRange
+    _ = zstring_remove_range(myStr, 0, 3);
+    assert(zstring_cmp(myStr,"💯Hell") == 1);
+    _ = zstring_remove(myStr,zstring_len(myStr) - 1);
+    assert(zstring_cmp(myStr,"💯Hel") == 1);
 
-//     // insert
-//     try myStr.insert("🔥", 1);
-//     assert(eql(u8, myStr.charAt(1).?, "🔥"));
-//     assert(myStr.cmp("A🔥\u{5360}💯Hell"));
+    const whitelist = [_:0]u8{ ' ', '\t', '\n', '\r' };
 
-//     // find
-//     assert(myStr.find("🔥").? == 1);
-//     assert(myStr.find("💯").? == 3);
-//     assert(myStr.find("Hell").? == 4);
+    // trimStart
+    _ = zstring_insert(myStr,"      ", 0);
+    zstring_trim_start(myStr,whitelist[0..]);
+    assert(zstring_cmp(myStr,"💯Hel") == 1);
 
-//     // remove & removeRange
-//     try myStr.removeRange(0, 3);
-//     assert(myStr.cmp("💯Hell"));
-//     try myStr.remove(myStr.len() - 1);
-//     assert(myStr.cmp("💯Hel"));
+    // trimEnd
+    _ = zstring_concat(myStr,"lo💯\n      ");
+    zstring_trim_end(myStr,whitelist[0..]);
+    assert(zstring_cmp(myStr,"💯Hello💯") == 1);
 
-//     const whitelist = [_]u8{ ' ', '\t', '\n', '\r' };
+    // clone
+    var testStr = zstring_clone(myStr, &out_err);
+    defer zstring_deinit(testStr);
+    var nstr_2 = try allocator.dupeZ(u8, zstring_str(myStr, &output_len).?[0..output_len]);
+    defer allocator.free(nstr_2);
+    assert(zstring_cmp(testStr, nstr_2) == 1);
 
-//     // trimStart
-//     try myStr.insert("      ", 0);
-//     myStr.trimStart(whitelist[0..]);
-//     assert(myStr.cmp("💯Hel"));
+    // reverse
+    zstring_reverse(myStr);
+    assert(zstring_cmp(myStr,"💯olleH💯") == 1);
+    zstring_reverse(myStr);
+    assert(zstring_cmp(myStr,"💯Hello💯") == 1);
 
-//     // trimEnd
-//     _ = try myStr.concat("lo💯\n      ");
-//     myStr.trimEnd(whitelist[0..]);
-//     assert(myStr.cmp("💯Hello💯"));
+    // repeat
+    _ = zstring_repeat(myStr,2);
+    assert(zstring_cmp(myStr,"💯Hello💯💯Hello💯💯Hello💯") == 1);
 
-//     // clone
-//     var testStr = try myStr.clone();
-//     defer testStr.deinit();
-//     assert(testStr.cmp(myStr.str()));
+    // isEmpty
+    assert(zstring_is_empty(myStr) == 0);
 
-//     // reverse
-//     myStr.reverse();
-//     assert(myStr.cmp("💯olleH💯"));
-//     myStr.reverse();
-//     assert(myStr.cmp("💯Hello💯"));
+    // split
+    assert(std.mem.eql(u8, zstring_split(myStr, "💯", 0,&output_len).?[0..output_len], ""));
+    assert(std.mem.eql(u8, zstring_split(myStr, "💯", 1,&output_len).?[0..output_len], "Hello"));
+    assert(std.mem.eql(u8, zstring_split(myStr, "💯", 2,&output_len).?[0..output_len], ""));
+    assert(std.mem.eql(u8, zstring_split(myStr, "💯", 3,&output_len).?[0..output_len], "Hello"));
+    assert(std.mem.eql(u8, zstring_split(myStr, "💯", 5, &output_len).?[0..output_len], "Hello"));
+    assert(std.mem.eql(u8, zstring_split(myStr, "💯", 6, &output_len).?[0..output_len], ""));
 
-//     // repeat
-//     try myStr.repeat(2);
-//     assert(myStr.cmp("💯Hello💯💯Hello💯💯Hello💯"));
+    var splitStr = zstring_init();
+    defer zstring_deinit(splitStr);
 
-//     // isEmpty
-//     assert(!myStr.isEmpty());
+    _ = zstring_concat(splitStr,"variable='value'");
+    assert(std.mem.eql(u8, zstring_split(splitStr,"=", 0, &output_len).?[0..output_len], "variable"));
+    assert(std.mem.eql(u8, zstring_split(splitStr,"=", 1, &output_len).?[0..output_len], "'value'"));
 
-//     // split
-//     assert(eql(u8, myStr.split("💯", 0).?, ""));
-//     assert(eql(u8, myStr.split("💯", 1).?, "Hello"));
-//     assert(eql(u8, myStr.split("💯", 2).?, ""));
-//     assert(eql(u8, myStr.split("💯", 3).?, "Hello"));
-//     assert(eql(u8, myStr.split("💯", 5).?, "Hello"));
-//     assert(eql(u8, myStr.split("💯", 6).?, ""));
+    // splitToString
+    var newSplit = zstring_split_to_zstring(splitStr,"=", 0, &out_err);
+    assert(newSplit != null);
+    defer zstring_deinit(newSplit);
 
-//     var splitStr = String.init(arena.allocator());
-//     defer splitStr.deinit();
+    assert(std.mem.eql(u8, zstring_str(newSplit, &output_len).?[0..output_len], "variable"));
 
-//     try splitStr.concat("variable='value'");
-//     assert(eql(u8, splitStr.split("=", 0).?, "variable"));
-//     assert(eql(u8, splitStr.split("=", 1).?, "'value'"));
+    // toLowercase & toUppercase
+    zstring_to_uppercase(myStr);
+    assert(zstring_cmp(myStr,"💯HELLO💯💯HELLO💯💯HELLO💯") == 1);
+    zstring_to_lowercase(myStr);
+    assert(zstring_cmp(myStr,"💯hello💯💯hello💯💯hello💯") == 1);
 
-//     // splitToString
-//     var newSplit = try splitStr.splitToString("=", 0);
-//     assert(newSplit != null);
-//     defer newSplit.?.deinit();
+    // substr
+    var subStr = zstring_substr(myStr,0, 7, &out_err);
+    defer zstring_deinit(subStr);
+    assert(zstring_cmp(subStr,"💯hello💯") == 1);
 
-//     assert(eql(u8, newSplit.?.str(), "variable"));
+    // clear
+    zstring_clear(myStr);
+    assert(zstring_len(myStr) == 0);
+    //assert(myStr.size == 0);
 
-//     // toLowercase & toUppercase
-//     myStr.toUppercase();
-//     assert(myStr.cmp("💯HELLO💯💯HELLO💯💯HELLO💯"));
-//     myStr.toLowercase();
-//     assert(myStr.cmp("💯hello💯💯hello💯💯hello💯"));
+    // writer
+    // const writer = myStr.writer();
+    // const length = try writer.write("This is a Test!");
+    // assert(length == 15);
 
-//     // substr
-//     var subStr = try myStr.substr(0, 7);
-//     defer subStr.deinit();
-//     assert(subStr.cmp("💯hello💯"));
+    // owned
+    //const mySlice = zstring_to_owned(myStr, &out_err, &output_len);
+    //assert(std.mem.eql(u8, mySlice.?[0..output_len], "This is a Test!"));
+    //allocator.free(mySlice.?);
 
-//     // clear
-//     myStr.clear();
-//     assert(myStr.len() == 0);
-//     assert(myStr.size == 0);
+    // // StringIterator
+    // var i: usize = 0;
+    // var iter = myStr.iterator();
+    // while (iter.next()) |ch| {
+    //     if (i == 0) {
+    //         assert(eql(u8, "T", ch));
+    //     }
+    //     i += 1;
+    // }
 
-//     // writer
-//     const writer = myStr.writer();
-//     const length = try writer.write("This is a Test!");
-//     assert(length == 15);
+    // assert(i == myStr.len());
+}
 
-//     // owned
-//     const mySlice = try myStr.toOwned();
-//     assert(eql(u8, mySlice.?, "This is a Test!"));
-//     arena.allocator().free(mySlice.?);
+test "init with contents" {
 
-//     // StringIterator
-//     var i: usize = 0;
-//     var iter = myStr.iterator();
-//     while (iter.next()) |ch| {
-//         if (i == 0) {
-//             assert(eql(u8, "T", ch));
-//         }
-//         i += 1;
-//     }
+    var initial_contents = "String with initial contents!";
+    var output_len: usize = undefined;
+    var out_err: zstring_error_t = undefined;
 
-//     assert(i == myStr.len());
-// }
-
-// test "init with contents" {
-//     // Allocator for the String
-//     const page_allocator = std.heap.page_allocator;
-//     var arena = std.heap.ArenaAllocator.init(page_allocator);
-//     defer arena.deinit();
-
-//     var initial_contents = "String with initial contents!";
-
-//     // This is how we create the String with contents at the start
-//     var myStr = try String.init_with_contents(arena.allocator(), initial_contents);
-//     assert(eql(u8, myStr.str(), initial_contents));
-// }
+    // This is how we create the String with contents at the start
+    var myStr = zstring_init_with_contents(initial_contents, &out_err);
+    assert(std.mem.eql(u8, zstring_str(myStr, &output_len).?[0..output_len], initial_contents));
+}
